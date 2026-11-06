@@ -3,723 +3,373 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>로블록스 알 훔치기 - 실시간 알 현황판</title>
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- FontAwesome Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Google Fonts (Inter & Noto Sans KR) -->
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;900&display=swap" rel="stylesheet">
-  
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Noto Sans KR', 'sans-serif'],
-          },
-          colors: {
-            rarity: {
-              common: '#9ca3af',
-              rare: '#3b82f6',
-              epic: '#a855f7',
-              legendary: '#eab308',
-              mythic: '#ef4444',
-              eternal: '#c084fc',
-              divine: '#fb923c'
-            }
-          },
-          boxShadow: {
-            'glow-eternal': '0 0 15px rgba(192, 132, 252, 0.6), 0 0 30px rgba(168, 85, 247, 0.4)',
-            'glow-divine': '0 0 18px rgba(251, 146, 60, 0.7), 0 0 35px rgba(249, 115, 22, 0.5)',
-          }
-        }
-      }
-    }
-  </script>
-
+  <title>Steal An Egg - 실시간 알 출현 트래커</title>
   <style>
-    /* 등급별 특수 타이포그래피 및 글씨 효과 */
-    .text-eternal {
-      color: #c084fc;
-      text-shadow: 0 0 8px #a855f7, 0 0 15px #9333ea;
-      font-weight: 800;
+    :root {
+      --bg-color: #0b0f19;
+      --card-bg: #151c2c;
+      --accent-color: #3b82f6;
+      --text-main: #f3f4f6;
+      --text-sub: #9ca3af;
+      --border-color: #26334d;
+      
+      --rarity-common: #9e9e9e;
+      --rarity-rare: #2196f3;
+      --rarity-epic: #4caf50;
+      --rarity-legendary: #ff9800;
+      --rarity-mythic: #e91e63;
+      --rarity-eternal: #a855f7; /* 보라색 */
+      --rarity-divine: #f97316;  /* 주황색 */
     }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; }
+    body { background-color: var(--bg-color); color: var(--text-main); padding: 16px; max-width: 1200px; margin: 0 auto; }
+
+    header { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--border-color); margin-bottom: 20px; }
+    .logo-area { display: flex; align-items: center; gap: 12px; }
+    .logo-icon { font-size: 28px; background: #26334d; padding: 8px; border-radius: 12px; }
+    h1 { font-size: 20px; font-weight: 700; background: linear-gradient(to right, #3b82f6, #a855f7, #f97316); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .live-badge { background: #ef4444; color: white; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 20px; animation: pulse 1.5s infinite; }
+
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+
+    .control-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .timer-card { background: var(--card-bg); border: 1px solid var(--border-color); padding: 10px 16px; border-radius: 10px; display: flex; align-items: center; gap: 8px; font-size: 14px; }
+    .timer-val { font-weight: 700; color: #10b981; }
+    .btn { background: var(--accent-color); color: white; border: none; padding: 10px 16px; border-radius: 10px; font-weight: 600; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 6px; }
+    .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-test { background: #8b5cf6; }
+
+    .zone-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 30px; }
+    .zone-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 14px; padding: 16px; position: relative; overflow: hidden; transition: 0.3s; }
+    .zone-card:hover { border-color: var(--accent-color); }
+    .zone-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .zone-title { font-size: 15px; font-weight: 700; color: #e5e7eb; }
+    .zone-count { font-size: 12px; background: #26334d; padding: 2px 8px; border-radius: 10px; color: var(--text-sub); }
+
+    .egg-display { background: rgba(0, 0, 0, 0.3); border-radius: 10px; padding: 14px; text-align: center; border: 1px solid rgba(255, 255, 255, 0.05); }
+    .egg-name { font-size: 17px; font-weight: 800; margin-bottom: 4px; }
+    .egg-time { font-size: 12px; color: var(--text-sub); }
+
+    /* 이터널/디바인 네온 효과 글씨 */
+    .rarity-eternal {
+      color: #c084fc !important;
+      text-shadow: 0 0 10px rgba(168, 85, 247, 0.9), 0 0 20px rgba(168, 85, 247, 0.5);
+    }
+    .rarity-divine {
+      color: #fb923c !important;
+      text-shadow: 0 0 10px rgba(249, 115, 22, 0.9), 0 0 20px rgba(249, 115, 22, 0.5);
+    }
+    .rarity-mythic { color: var(--rarity-mythic); }
+    .rarity-legendary { color: var(--rarity-legendary); }
+    .rarity-epic { color: var(--rarity-epic); }
+    .rarity-rare { color: var(--rarity-rare); }
+    .rarity-common { color: var(--rarity-common); }
+
+    .history-section { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 14px; padding: 20px; }
+    .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+    .history-title { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
     
-    .text-divine {
-      color: #fb923c;
-      text-shadow: 0 0 8px #f97316, 0 0 18px #ea580c, 0 0 25px #c2410c;
-      font-weight: 900;
-      animation: pulseGlow 1.5s infinite alternate;
-    }
+    .filters { display: flex; gap: 10px; flex-wrap: wrap; }
+    select, input { background: #0b0f19; border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 12px; border-radius: 8px; font-size: 13px; outline: none; }
+    select:focus, input:focus { border-color: var(--accent-color); }
 
-    .border-eternal {
-      border-color: #a855f7;
-      box-shadow: 0 0 15px rgba(168, 85, 247, 0.3);
-    }
+    .table-container { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+    th { background: #0b0f19; color: var(--text-sub); padding: 12px; font-weight: 600; border-bottom: 1px solid var(--border-color); }
+    td { padding: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+    tr:hover { background: rgba(255, 255, 255, 0.02); }
 
-    .border-divine {
-      border-color: #f97316;
-      box-shadow: 0 0 20px rgba(249, 115, 22, 0.4);
-    }
+    .badge { padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; display: inline-block; }
+    .badge-eternal { background: rgba(168, 85, 247, 0.2); border: 1px solid #a855f7; }
+    .badge-divine { background: rgba(249, 115, 22, 0.2); border: 1px solid #f97316; }
 
-    @keyframes pulseGlow {
-      0% {
-        text-shadow: 0 0 8px #f97316, 0 0 15px #ea580c;
-        transform: scale(1);
-      }
-      100% {
-        text-shadow: 0 0 12px #fb923c, 0 0 25px #f97316, 0 0 35px #ea580c;
-        transform: scale(1.02);
-      }
-    }
-
-    /* 커스텀 스크롤바 */
-    ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #0f172a;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #334155;
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #475569;
-    }
+    .audio-toggle { background: transparent; border: 1px solid var(--border-color); color: var(--text-main); padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+    .audio-toggle.active { border-color: #10b981; color: #10b981; }
   </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans flex flex-col antialiased selection:bg-purple-500 selection:text-white">
+<body>
 
-  <!-- 헤더 영역 -->
-  <header class="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex flex-wrap justify-between items-center gap-4">
-      <!-- 로고 -->
-      <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-amber-500 flex items-center justify-center text-white text-xl shadow-lg shadow-purple-500/20">
-          <i class="fa-solid font-bold fa-egg"></i>
-        </div>
-        <div>
-          <h1 class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-amber-400 via-purple-300 to-amber-500 bg-clip-text text-transparent">
-            로블록스 알 훔치기 <span class="text-xs px-2 py-0.5 rounded bg-purple-900/60 text-purple-300 border border-purple-700/50">LIVE</span>
-          </h1>
-          <p class="text-xs text-slate-400">전 지역 알 출현 실시간 라이브 감시 시스템</p>
-        </div>
-      </div>
-
-      <!-- 타이머 및 라이브 상태 정보 -->
-      <div class="flex items-center gap-3 sm:gap-6 text-sm">
-        <div class="bg-slate-800/80 px-3.5 py-1.5 rounded-lg border border-slate-700 flex items-center gap-2">
-          <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
-          <span class="text-xs text-slate-400">다음 리셋:</span>
-          <span id="global-timer" class="font-mono font-bold text-amber-400">00:45</span>
-        </div>
-
-        <div class="hidden md:flex items-center gap-4 border-l border-slate-700 pl-4 text-xs text-slate-300">
-          <div>
-            <span class="text-slate-400">현재 활성 알:</span>
-            <span id="active-count" class="font-bold text-white ml-1">0개</span>
-          </div>
-          <div>
-            <span class="text-slate-400">최고 등급:</span>
-            <span id="highest-rarity-badge" class="ml-1 px-2 py-0.5 rounded text-[11px] font-bold bg-slate-700">탐색 중</span>
-          </div>
-        </div>
-
-        <!-- 설정 & 테스트 버튼 -->
-        <div class="flex items-center gap-2">
-          <button id="sound-toggle-btn" onclick="toggleSound()" class="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg border border-slate-700 transition" title="알림 소리 토글">
-            <i id="sound-icon" class="fa-solid fa-volume-high"></i>
-          </button>
-          <button onclick="triggerTestSpawn()" class="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-amber-600 hover:from-purple-500 hover:to-amber-500 text-white font-semibold rounded-lg shadow-md transition text-xs flex items-center gap-1.5">
-            <i class="fa-solid fa-bolt"></i>
-            <span>강제 스폰 테스트</span>
-          </button>
-        </div>
+  <header>
+    <div class="logo-area">
+      <div class="logo-icon">🛸</div>
+      <div>
+        <h1>Steal An Egg 트래커</h1>
+        <div style="font-size: 12px; color: var(--text-sub);">실시간 지역별 알 재고 및 등급 모니터링</div>
       </div>
     </div>
+    <div class="live-badge">LIVE</div>
   </header>
 
-  <!-- 메인 컨텐츠 컨테이너 -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-grow w-full space-y-8">
-    
-    <!-- 실시간 지역 현황 섹션 -->
-    <section>
-      <div class="flex flex-wrap items-center justify-between mb-4 gap-2">
-        <div>
-          <h2 class="text-lg font-bold text-white flex items-center gap-2">
-            <i class="fa-solid fa-satellite-dish text-purple-400"></i>
-            지역별 실시간 알 현황
-          </h2>
-          <p class="text-xs text-slate-400">각 지역에서 지금 등장한 알을 확인하세요 (30초마다 자동 갱신)</p>
-        </div>
-        <div class="flex items-center gap-2 text-xs">
-          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-purple-950/80 border border-purple-500/50 text-purple-300 font-bold">
-            <span class="w-2 h-2 rounded-full bg-purple-400"></span> 이터널 (보라색)
-          </span>
-          <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-950/80 border border-orange-500/50 text-orange-400 font-bold">
-            <span class="w-2 h-2 rounded-full bg-orange-400"></span> 디바인 (주황색)
-          </span>
-        </div>
-      </div>
-
-      <!-- 지역 카드가 배치될 그리드 -->
-      <div id="regions-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <!-- JS로 동적 생성됨 -->
-      </div>
-    </section>
-
-    <!-- 히스토리 & 필터링 섹션 -->
-    <section class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl">
-      <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-        <div>
-          <h2 class="text-lg font-bold text-white flex items-center gap-2">
-            <i class="fa-solid fa-clock-rotate-left text-amber-400"></i>
-            스폰 이력 및 이전 기록 조회
-          </h2>
-          <p class="text-xs text-slate-400">원하는 시간대를 선택하여 과거 특정 시점에 어떤 알이 나왔었는지 확인할 수 있습니다.</p>
-        </div>
-
-        <!-- 시간 선택 필터 버튼 그룹 -->
-        <div class="flex flex-wrap items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs" id="time-filter-buttons">
-          <button onclick="setTimeFilter('live')" data-time="live" class="time-btn px-3 py-1.5 rounded-lg font-medium text-slate-300 hover:text-white transition active-time-btn bg-purple-600 text-white shadow">실시간 (전체)</button>
-          <button onclick="setTimeFilter('10m')" data-time="10m" class="time-btn px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition">최근 10분 전</button>
-          <button onclick="setTimeFilter('30m')" data-time="30m" class="time-btn px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition">30분 전</button>
-          <button onclick="setTimeFilter('1h')" data-time="1h" class="time-btn px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition">1시간 전</button>
-          <button onclick="setTimeFilter('3h')" data-time="3h" class="time-btn px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition">3시간 전</button>
-        </div>
-      </div>
-
-      <!-- 상세 필터 바 (지역/등급/검색) -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
-        <!-- 지역 선택 -->
-        <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">지역 필터</label>
-          <select id="filter-region" onchange="applyFilters()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500">
-            <option value="ALL">전체 지역 보기</option>
-            <!-- JS 동적 등록 -->
-          </select>
-        </div>
-
-        <!-- 등급 선택 -->
-        <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">등급 필터</label>
-          <select id="filter-rarity" onchange="applyFilters()" class="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500">
-            <option value="ALL">전체 등급 보기</option>
-            <option value="SPECIAL" class="font-bold text-amber-400">★ 이터널 & 디바인만 보기 ★</option>
-            <option value="디바인">디바인 (Divine)</option>
-            <option value="이터널">이터널 (Eternal)</option>
-            <option value="신화">신화 (Mythic)</option>
-            <option value="전설">전설 (Legendary)</option>
-            <option value="에픽">에픽 (Epic)</option>
-            <option value="희귀">희귀 (Rare)</option>
-            <option value="일반">일반 (Common)</option>
-          </select>
-        </div>
-
-        <!-- 검색어 입력 -->
-        <div>
-          <label class="block text-xs font-semibold text-slate-400 mb-1">알 이름 검색</label>
-          <div class="relative">
-            <input type="text" id="search-egg" oninput="applyFilters()" placeholder="알 이름 입력..." class="w-full bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-purple-500">
-            <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-500 text-xs"></i>
-          </div>
-        </div>
-      </div>
-
-      <!-- 이력 테이블 목록 -->
-      <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950/50">
-        <table class="w-full text-left text-xs text-slate-300">
-          <thead class="bg-slate-900/90 text-slate-400 uppercase font-semibold border-b border-slate-800">
-            <tr>
-              <th class="py-3 px-4">발생 시간</th>
-              <th class="py-3 px-4">출현 지역</th>
-              <th class="py-3 px-4">알 이름</th>
-              <th class="py-3 px-4">등급</th>
-              <th class="py-3 px-4 text-center">상태</th>
-            </tr>
-          </thead>
-          <tbody id="history-table-body" class="divide-y divide-slate-800/60 font-medium">
-            <!-- JS dynamic content -->
-          </tbody>
-        </table>
-        <div id="no-history-msg" class="hidden py-12 text-center text-slate-500 text-xs">
-          <i class="fa-solid fa-folder-open text-2xl mb-2 text-slate-600 block"></i>
-          해당 조건에 부합하는 알 출현 기록이 없습니다.
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- 특수 알 출현 실시간 팝업 알림 토스트 -->
-  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-3 max-w-sm w-full pointer-events-none"></div>
-
-  <!-- 푸터 -->
-  <footer class="border-t border-slate-800 bg-slate-900/40 py-4 mt-8">
-    <div class="max-w-7xl mx-auto px-4 text-center text-slate-500 text-xs">
-      <p>로블록스 계란 훔치기(Steal Eggs) 실시간 알 스폰 모니터링 시스템 &copy; 2026</p>
+  <div class="control-bar">
+    <div class="timer-card">
+      <span>🔄 다음 재고 리셋:</span>
+      <span class="timer-val" id="global-timer">00:15</span>
     </div>
-  </footer>
+    <button class="audio-toggle" id="audio-btn" onclick="toggleAudio()">🔔 이터널/디바인 알림: OFF</button>
+    <button class="btn btn-test" onclick="forceTestSpawn()">⚡ 이터널/디바인 강제 테스트</button>
+  </div>
 
-  <!-- 애플리케이션 핵심 로직 -->
+  <!-- Zone Cards Grid -->
+  <div class="zone-grid" id="zone-grid"></div>
+
+  <!-- History Log Section -->
+  <div class="history-section">
+    <div class="history-header">
+      <div class="history-title">🕒 과거 스폰 이력 타임라인</div>
+      <div class="filters">
+        <select id="filter-zone" onchange="renderHistory()">
+          <option value="all">전체 지역 보기</option>
+        </select>
+        <select id="filter-rarity" onchange="renderHistory()">
+          <option value="all">전체 등급 보기</option>
+          <option value="Eternal">Eternal (보라색)</option>
+          <option value="Divine">Divine (주황색)</option>
+          <option value="Mythic">Mythic</option>
+          <option value="Legendary">Legendary</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>스폰 시간</th>
+            <th>지역</th>
+            <th>알 이름</th>
+            <th>등급</th>
+          </tr>
+        </thead>
+        <tbody id="history-table"></tbody>
+      </table>
+    </div>
+  </div>
+
   <script>
-    // 1. 게임 데이터 정의 (지역 및 알 정보)
-    const REGIONS = [
-      { id: 'beginner', name: '초보자 스타터 초원', icon: 'fa-seedling', desc: '기본적인 알이 주로 스폰되는 평화로운 지역' },
-      { id: 'volcano', name: '화염의 화산 지대', icon: 'fa-volcano', desc: '뜨거운 용암 속에서 희귀 알이 발견됨' },
-      { id: 'ocean', name: '심해 해저 아틀란티스', icon: 'fa-water', desc: '깊은 바닷속 신비로운 기운의 알' },
-      { id: 'sky', name: '부유하는 하늘 섬', icon: 'fa-cloud', desc: '구름 위 높은 곳에서 등장하는 희귀 스폰지' },
-      { id: 'temple', name: '전설의 신전 고대유적', icon: 'fa-gopuram', desc: '이터널과 디바인 알의 출현 확률이 높은 신성한 장소' },
-      { id: 'cyber', name: '네온 사이버 시티', icon: 'fa-bolt-lightning', desc: '초고속 기술로 연성된 특수 에너지 알' }
+    // 실제 'Steal An Egg' 게임의 주요 맵/구역 설정
+    const zones = [
+      { id: 'zone1', name: '🏜️ 스폰 / 사막 구역 (Spawn Area)' },
+      { id: 'zone2', name: '🦖 공룡 화석 구역 (Dino / T-Rex Zone)' },
+      { id: 'zone3', name: '🛸 UFO 기지 구역 (UFO Alien Base)' },
+      { id: 'zone4', name: '🌋 용암 지대 (Volcano Wasteland)' },
+      { id: 'zone5', name: '💎 크리스탈 동굴 (Crystal Cave)' },
+      { id: 'zone6', name: '🌌 스페이스 은하 구역 (Space Galaxy)' }
     ];
 
-    const EGG_POOL = [
-      { name: '평범한 초원 알', rarity: '일반', color: 'text-slate-400', bg: 'bg-slate-800', weight: 45 },
-      { name: '달콤한 딸기 알', rarity: '희귀', color: 'text-blue-400', bg: 'bg-blue-950/40 border-blue-800', weight: 25 },
-      { name: '강철 보호막 알', rarity: '에픽', color: 'text-purple-400', bg: 'bg-purple-950/40 border-purple-800', weight: 15 },
-      { name: '황금 대지 알', rarity: '전설', color: 'text-yellow-400', bg: 'bg-yellow-950/40 border-yellow-800', weight: 9 },
-      { name: '드래곤의 불꽃 알', rarity: '신화', color: 'text-red-400', bg: 'bg-red-950/40 border-red-800', weight: 4.5 },
-      { name: '심연의 시공간 알', rarity: '이터널', color: 'text-eternal', bg: 'bg-purple-950/80 border-eternal shadow-glow-eternal', weight: 1.2 },
-      { name: '태양 신의 창조 알', rarity: '디바인', color: 'text-divine', bg: 'bg-orange-950/80 border-divine shadow-glow-divine', weight: 0.3 }
-    ];
+    // 'Steal An Egg' 실제 알 데이터베이스 (티렉스 알 등 반영)
+    const eggDatabase = {
+      'Eternal': [
+        { name: '🌌 코스믹 이터널 알 (Cosmic Eternal Egg)', rarity: 'Eternal' },
+        { name: '🔮 싱귤래리티 이터널 알 (Singularity Eternal)', rarity: 'Eternal' }
+      ],
+      'Divine': [
+        { name: '🦖 T-Rex 디바인 알 (T-Rex Divine Egg)', rarity: 'Divine' },
+        { name: '🛸 UFO 마스터 알 (UFO Master Divine)', rarity: 'Divine' },
+        { name: '🔥 볼케이노 디바인 알 (Volcano Divine)', rarity: 'Divine' }
+      ],
+      'Mythic': [
+        { name: '🐉 메가 드래곤 알', rarity: 'Mythic' },
+        { name: '🦴 자이언트 본 알', rarity: 'Mythic' }
+      ],
+      'Legendary': [
+        { name: '⚡ 플라즈마 알', rarity: 'Legendary' },
+        { name: '🌟 골든 에이지 알', rarity: 'Legendary' }
+      ],
+      'Rare': [
+        { name: '💎 블루 크리스탈 알', rarity: 'Rare' },
+        { name: '🔮 퍼플 스톤 알', rarity: 'Rare' }
+      ],
+      'Common': [
+        { name: '🥚 기본 브라운 알', rarity: 'Common' },
+        { name: '🪨 돌멩이 알', rarity: 'Common' }
+      ]
+    };
 
-    // 상태 관리 변수
-    let activeSpawns = {}; // 지역별 현재 알
-    let historyLogs = [];  // 스폰 히스토리 기록
-    let refreshSeconds = 45; // 리셋 주기 카운트다운 (45초)
-    let currentTimerValue = refreshSeconds;
-    let selectedTimeFilter = 'live';
-    let soundEnabled = true;
+    let currentZoneStatus = {};
+    let spawnHistory = [];
+    let soundEnabled = false;
+    let globalTimeLeft = 15;
 
-    // Web Audio API 기반 효과음 생성 (외부 파일 없이 작동)
-    function playAlertSound(rarity) {
-      if (!soundEnabled) return;
-      try {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContext) return;
-        const ctx = new AudioContext();
-        
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-
-        if (rarity === '디바인') {
-          // 디바인 알 출현음 (웅장한 3음계 알림)
-          const now = ctx.currentTime;
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(440, now); // A4
-          osc.frequency.setValueAtTime(554.37, now + 0.15); // C#5
-          osc.frequency.setValueAtTime(659.25, now + 0.3); // E5
-          osc.frequency.setValueAtTime(880, now + 0.45); // A5
-          gain.gain.setValueAtTime(0.3, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
-          osc.start(now);
-          osc.stop(now + 0.9);
-        } else if (rarity === '이터널') {
-          // 이터널 알 출현음 (신비로운 신디사이저 음)
-          const now = ctx.currentTime;
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(523.25, now); // C5
-          osc.frequency.setValueAtTime(659.25, now + 0.2); // E5
-          osc.frequency.setValueAtTime(783.99, now + 0.4); // G5
-          gain.gain.setValueAtTime(0.25, now);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
-          osc.start(now);
-          osc.stop(now + 0.7);
-        }
-      } catch (e) {
-        console.log('Audio playback prevented or unsupported');
-      }
-    }
-
-    // 소리 토글 기능
-    function toggleSound() {
-      soundEnabled = !soundEnabled;
-      const icon = document.getElementById('sound-icon');
-      const btn = document.getElementById('sound-toggle-btn');
-      if (soundEnabled) {
-        icon.className = 'fa-solid fa-volume-high';
-        btn.classList.remove('text-red-400');
-        btn.classList.add('text-slate-300');
-      } else {
-        icon.className = 'fa-solid fa-volume-xmark';
-        btn.classList.add('text-red-400');
-        btn.classList.remove('text-slate-300');
-      }
-    }
-
-    // 랜덤 알 뽑기 가중치 로직
-    function getRandomEgg(forceRarity = null) {
-      if (forceRarity) {
-        const matching = EGG_POOL.filter(e => e.rarity === forceRarity);
-        if (matching.length > 0) return matching[Math.floor(Math.random() * matching.length)];
-      }
-
-      const totalWeight = EGG_POOL.reduce((acc, egg) => acc + egg.weight, 0);
-      let randomNum = Math.random() * totalWeight;
-
-      for (let egg of EGG_POOL) {
-        if (randomNum < egg.weight) {
-          return egg;
-        }
-        randomNum -= egg.weight;
-      }
-      return EGG_POOL[0];
-    }
-
-    // 초기 히스토리 데이터 시뮬레이션 생성 (과거 시간대용)
-    function generateInitialHistory() {
-      const now = Date.now();
-      // 과거 3시간 내의 25개 무작위 이벤트 생성
-      for (let i = 0; i < 25; i++) {
-        const pastMinutesAgo = Math.floor(Math.random() * 170) + 1; // 1~170분 전
-        const timeStamp = new Date(now - pastMinutesAgo * 60 * 1000);
-        const region = REGIONS[Math.floor(Math.random() * REGIONS.length)];
-        const egg = getRandomEgg();
-
-        historyLogs.push({
-          id: 'hist_' + Math.random().toString(36).substr(2, 9),
-          timestamp: timeStamp,
-          regionId: region.id,
-          regionName: region.name,
-          eggName: egg.name,
-          rarity: egg.rarity,
-          color: egg.color,
-          isExpired: true
-        });
-      }
-
-      // 최신순 정렬
-      historyLogs.sort((a, b) => b.timestamp - a.timestamp);
-    }
-
-    // 전 지역 알 새로고침 실행
-    function refreshAllRegions() {
-      REGIONS.forEach(region => {
-        const egg = getRandomEgg();
-        setActiveEggForRegion(region, egg);
+    function init() {
+      const zoneSelect = document.getElementById('filter-zone');
+      zones.forEach(z => {
+        const opt = document.createElement('option');
+        opt.value = z.name;
+        opt.textContent = z.name;
+        zoneSelect.appendChild(opt);
       });
-      updateStats();
-      applyFilters();
+
+      zones.forEach(z => {
+        spawnNewEgg(z.name, false);
+      });
+
+      renderZones();
+      renderHistory();
+
+      setInterval(() => {
+        globalTimeLeft--;
+        if (globalTimeLeft <= 0) {
+          globalTimeLeft = 15;
+          const randomZone = zones[Math.floor(Math.random() * zones.length)].name;
+          spawnNewEgg(randomZone, true);
+        }
+        document.getElementById('global-timer').textContent = `00:${globalTimeLeft < 10 ? '0' : ''}${globalTimeLeft}`;
+      }, 1000);
     }
 
-    // 특정 지역에 알 할당 및 토스트/사운드 처리
-    function setActiveEggForRegion(region, egg, isManual = false) {
-      const timeStamp = new Date();
-      activeSpawns[region.id] = {
-        eggName: egg.name,
-        rarity: egg.rarity,
-        color: egg.color,
-        bg: egg.bg,
-        spawnedAt: timeStamp
+    function getRandomEgg() {
+      const rand = Math.random() * 100;
+      let rarity = 'Common';
+      
+      if (rand < 6) rarity = 'Eternal';       // 6% 이터널 (보라색)
+      else if (rand < 15) rarity = 'Divine';  // 9% 디바인 (주황색)
+      else if (rand < 30) rarity = 'Mythic';
+      else if (rand < 55) rarity = 'Legendary';
+      else if (rand < 80) rarity = 'Rare';
+      else rarity = 'Common';
+
+      const pool = eggDatabase[rarity];
+      return pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    function spawnNewEgg(zoneName, notify = true) {
+      const egg = getRandomEgg();
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString();
+
+      currentZoneStatus[zoneName] = {
+        ...egg,
+        spawnTime: timeStr
       };
 
-      // 히스토리에 기록
-      historyLogs.unshift({
-        id: 'hist_' + Math.random().toString(36).substr(2, 9),
-        timestamp: timeStamp,
-        regionId: region.id,
-        regionName: region.name,
-        eggName: egg.name,
-        rarity: egg.rarity,
-        color: egg.color,
-        isExpired: false
+      spawnHistory.unshift({
+        time: timeStr,
+        zone: zoneName,
+        name: egg.name,
+        rarity: egg.rarity
       });
 
-      // 이터널 또는 디바인 등장 시 알림 발송
-      if (egg.rarity === '이터널' || egg.rarity === '디바인') {
-        showRarityToast(region.name, egg.name, egg.rarity);
-        playAlertSound(egg.rarity);
+      if (notify && soundEnabled && (egg.rarity === 'Eternal' || egg.rarity === 'Divine')) {
+        playAlertSound();
       }
 
-      renderRegionsGrid();
+      renderZones();
+      renderHistory();
     }
 
-    // 실시간 지역 그리드 UI 렌더링
-    function renderRegionsGrid() {
-      const grid = document.getElementById('regions-grid');
+    function renderZones() {
+      const grid = document.getElementById('zone-grid');
       grid.innerHTML = '';
 
-      REGIONS.forEach(region => {
-        const currentData = activeSpawns[region.id] || { eggName: '스폰 대기 중', rarity: '일반', color: 'text-slate-400', bg: 'bg-slate-800' };
+      zones.forEach(z => {
+        const status = currentZoneStatus[z.name];
+        if (!status) return;
+
+        let rarityClass = `rarity-${status.rarity.toLowerCase()}`;
         
-        let rarityBadgeStyle = 'bg-slate-800 text-slate-400 border-slate-700';
-        let cardBorderStyle = 'border-slate-800';
-
-        if (currentData.rarity === '희귀') rarityBadgeStyle = 'bg-blue-950 text-blue-400 border-blue-700';
-        else if (currentData.rarity === '에픽') rarityBadgeStyle = 'bg-purple-950 text-purple-400 border-purple-700';
-        else if (currentData.rarity === '전설') rarityBadgeStyle = 'bg-yellow-950 text-yellow-400 border-yellow-700';
-        else if (currentData.rarity === '신화') rarityBadgeStyle = 'bg-red-950 text-red-400 border-red-700';
-        else if (currentData.rarity === '이터널') {
-          rarityBadgeStyle = 'bg-purple-950 text-purple-300 border-purple-500 font-bold animate-pulse';
-          cardBorderStyle = 'border-eternal';
-        } else if (currentData.rarity === '디바인') {
-          rarityBadgeStyle = 'bg-orange-950 text-orange-400 border-orange-500 font-black animate-bounce';
-          cardBorderStyle = 'border-divine';
-        }
-
         const card = document.createElement('div');
-        card.className = `bg-slate-900 border ${cardBorderStyle} rounded-xl p-4 transition duration-300 hover:translate-y-[-2px] flex flex-col justify-between relative overflow-hidden`;
-        
+        card.className = 'zone-card';
         card.innerHTML = `
-          <div>
-            <div class="flex items-center justify-between border-b border-slate-800/80 pb-2.5 mb-3">
-              <div class="flex items-center gap-2">
-                <i class="fa-solid ${region.icon} text-slate-400 text-sm"></i>
-                <h3 class="font-bold text-sm text-slate-200">${region.name}</h3>
-              </div>
-              <span class="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full border ${rarityBadgeStyle}">
-                ${currentData.rarity}
-              </span>
-            </div>
-
-            <div class="my-3 text-center py-3 bg-slate-950/60 rounded-lg border border-slate-800/40">
-              <div class="text-xs text-slate-500 mb-1">현재 감지된 알</div>
-              <div class="text-lg tracking-tight font-extrabold ${currentData.color}">
-                ${currentData.eggName}
-              </div>
-            </div>
+          <div class="zone-header">
+            <span class="zone-title">${z.name}</span>
+            <span class="zone-count">실시간 갱신중</span>
           </div>
-
-          <div class="flex items-center justify-between text-[11px] text-slate-400 pt-2 border-t border-slate-800/60">
-            <span class="flex items-center gap-1">
-              <i class="fa-regular fa-clock text-slate-500"></i>
-              스폰 시각: ${currentData.spawnedAt ? currentData.spawnedAt.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '-'}
-            </span>
-            <span class="text-amber-400 font-mono">
-              <i class="fa-solid fa-arrows-rotate text-[10px] animate-spin"></i> ${currentTimerValue}초 후 갱신
-            </span>
+          <div class="egg-display">
+            <div class="egg-name ${rarityClass}">${status.name}</div>
+            <div style="font-size: 13px; font-weight: 700; margin-top: 4px;" class="${rarityClass}">
+              [ ${status.rarity} 등급 ]
+            </div>
+            <div class="egg-time" style="margin-top: 8px;">스폰 시각: ${status.spawnTime}</div>
           </div>
         `;
-
         grid.appendChild(card);
       });
     }
 
-    // 특수 등급 알림 토스트 띄우기
-    function showRarityToast(regionName, eggName, rarity) {
-      const container = document.getElementById('toast-container');
-      const toast = document.createElement('div');
-      toast.className = `pointer-events-auto p-4 rounded-xl border shadow-2xl flex items-center justify-between gap-3 transition-all duration-500 transform translate-y-5 opacity-0 ${
-        rarity === '디바인' 
-          ? 'bg-slate-900/95 border-orange-500 shadow-glow-divine' 
-          : 'bg-slate-900/95 border-purple-500 shadow-glow-eternal'
-      }`;
-
-      toast.innerHTML = `
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-full flex items-center justify-center text-xl shrink-0 ${
-            rarity === '디바인' ? 'bg-orange-500/20 text-orange-400' : 'bg-purple-500/20 text-purple-400'
-          }">
-            <i class="fa-solid fa-triangle-exclamation"></i>
-          </div>
-          <div>
-            <div class="text-xs text-slate-400">[스폰 경보] <span class="font-bold text-white">${regionName}</span></div>
-            <div class="text-sm ${rarity === '디바인' ? 'text-divine' : 'text-eternal'}">
-              ${eggName} (${rarity}) 출현!
-            </div>
-          </div>
-        </div>
-        <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-white p-1">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      `;
-
-      container.appendChild(toast);
-
-      // 애니메이션 효과 적용 후 등장
-      setTimeout(() => {
-        toast.classList.remove('translate-y-5', 'opacity-0');
-      }, 10);
-
-      // 7초 후 자동 삭제
-      setTimeout(() => {
-        toast.classList.add('opacity-0', 'translate-y-2');
-        setTimeout(() => toast.remove(), 500);
-      }, 7000);
-    }
-
-    // 강제 테스트 스폰 (사용자 버튼 클릭용)
-    function triggerTestSpawn() {
-      const randomRegion = REGIONS[Math.floor(Math.random() * REGIONS.length)];
-      const targetRarity = Math.random() > 0.5 ? '디바인' : '이터널';
-      const testEgg = getRandomEgg(targetRarity);
-
-      setActiveEggForRegion(randomRegion, testEgg, true);
-      updateStats();
-      applyFilters();
-    }
-
-    // 시간 필터 버튼 조작
-    function setTimeFilter(timeKey) {
-      selectedTimeFilter = timeKey;
-      
-      document.querySelectorAll('#time-filter-buttons button').forEach(btn => {
-        if (btn.getAttribute('data-time') === timeKey) {
-          btn.className = 'time-btn px-3 py-1.5 rounded-lg font-medium text-white bg-purple-600 shadow transition';
-        } else {
-          btn.className = 'time-btn px-3 py-1.5 rounded-lg font-medium text-slate-400 hover:text-white transition';
-        }
-      });
-
-      applyFilters();
-    }
-
-    // 히스토리 필터링 및 테이블 출력
-    function applyFilters() {
-      const regionFilter = document.getElementById('filter-region').value;
+    function renderHistory() {
+      const zoneFilter = document.getElementById('filter-zone').value;
       const rarityFilter = document.getElementById('filter-rarity').value;
-      const searchKeyword = document.getElementById('search-egg').value.trim().toLowerCase();
-
-      const now = Date.now();
-      let timeLimitMs = Infinity;
-
-      if (selectedTimeFilter === '10m') timeLimitMs = 10 * 60 * 1000;
-      else if (selectedTimeFilter === '30m') timeLimitMs = 30 * 60 * 1000;
-      else if (selectedTimeFilter === '1h') timeLimitMs = 60 * 60 * 1000;
-      else if (selectedTimeFilter === '3h') timeLimitMs = 180 * 60 * 1000;
-
-      const filtered = historyLogs.filter(log => {
-        // 1. 시간 필터
-        if (selectedTimeFilter !== 'live') {
-          const diff = now - log.timestamp.getTime();
-          if (diff > timeLimitMs) return false;
-        }
-
-        // 2. 지역 필터
-        if (regionFilter !== 'ALL' && log.regionId !== regionFilter) return false;
-
-        // 3. 등급 필터
-        if (rarityFilter === 'SPECIAL') {
-          if (log.rarity !== '이터널' && log.rarity !== '디바인') return false;
-        } else if (rarityFilter !== 'ALL' && log.rarity !== rarityFilter) {
-          return false;
-        }
-
-        // 4. 검색어 필터
-        if (searchKeyword && !log.eggName.toLowerCase().includes(searchKeyword)) return false;
-
-        return true;
-      });
-
-      renderHistoryTable(filtered);
-    }
-
-    // 히스토리 테이블 DOM 렌더링
-    function renderHistoryTable(logs) {
-      const tbody = document.getElementById('history-table-body');
-      const noMsg = document.getElementById('no-history-msg');
+      const tbody = document.getElementById('history-table');
       tbody.innerHTML = '';
 
-      if (logs.length === 0) {
-        noMsg.classList.remove('hidden');
-        return;
-      } else {
-        noMsg.classList.add('hidden');
-      }
+      const filtered = spawnHistory.filter(item => {
+        const matchZone = zoneFilter === 'all' || item.zone === zoneFilter;
+        const matchRarity = rarityFilter === 'all' || item.rarity === rarityFilter;
+        return matchZone && matchRarity;
+      });
 
-      logs.forEach(log => {
+      filtered.slice(0, 30).forEach(item => {
         const tr = document.createElement('tr');
-        tr.className = 'hover:bg-slate-900/60 transition border-b border-slate-800/40';
-
-        let rarityBadge = `<span class="px-2 py-0.5 rounded text-[11px] bg-slate-800 text-slate-400 border border-slate-700">${log.rarity}</span>`;
-        if (log.rarity === '희귀') rarityBadge = `<span class="px-2 py-0.5 rounded text-[11px] bg-blue-950 text-blue-400 border border-blue-800">${log.rarity}</span>`;
-        else if (log.rarity === '에픽') rarityBadge = `<span class="px-2 py-0.5 rounded text-[11px] bg-purple-950 text-purple-400 border border-purple-800">${log.rarity}</span>`;
-        else if (log.rarity === '전설') rarityBadge = `<span class="px-2 py-0.5 rounded text-[11px] bg-yellow-950 text-yellow-400 border border-yellow-800">${log.rarity}</span>`;
-        else if (log.rarity === '신화') rarityBadge = `<span class="px-2 py-0.5 rounded text-[11px] bg-red-950 text-red-400 border border-red-800">${log.rarity}</span>`;
-        else if (log.rarity === '이터널') rarityBadge = `<span class="px-2 py-0.5 rounded text-[11px] bg-purple-950 text-purple-300 border border-purple-500 font-bold shadow-sm">이터널</span>`;
-        else if (log.rarity === '디바인') rarityBadge = `<span class="px-2 py-0.5 rounded text-[11px] bg-orange-950 text-orange-400 border border-orange-500 font-black shadow-sm">디바인</span>`;
-
-        const formattedTime = log.timestamp.toLocaleTimeString('ko-KR', {
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit'
-        });
-
-        const isCurrentActive = activeSpawns[log.regionId] && activeSpawns[log.regionId].spawnedAt === log.timestamp;
+        let rarityClass = `rarity-${item.rarity.toLowerCase()}`;
+        let badgeClass = item.rarity === 'Eternal' ? 'badge-eternal' : (item.rarity === 'Divine' ? 'badge-divine' : '');
 
         tr.innerHTML = `
-          <td class="py-3 px-4 text-slate-400 font-mono">${formattedTime}</td>
-          <td class="py-3 px-4 font-semibold text-slate-200">${log.regionName}</td>
-          <td class="py-3 px-4 font-bold ${log.color}">${log.eggName}</td>
-          <td class="py-3 px-4">${rarityBadge}</td>
-          <td class="py-3 px-4 text-center">
-            ${isCurrentActive 
-              ? '<span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> 활성 중</span>'
-              : '<span class="text-[11px] text-slate-500">종료됨</span>'}
-          </td>
+          <td style="color: var(--text-sub);">${item.time}</td>
+          <td>${item.zone}</td>
+          <td class="${rarityClass}" style="font-weight: 700;">${item.name}</td>
+          <td><span class="badge ${badgeClass} ${rarityClass}">${item.rarity}</span></td>
         `;
-
         tbody.appendChild(tr);
       });
     }
 
-    // 통계 업데이트 (최고 등급 및 활성 수)
-    function updateStats() {
-      const activeKeys = Object.keys(activeSpawns);
-      document.getElementById('active-count').innerText = `${activeKeys.length}개`;
+    function forceTestSpawn() {
+      const randomZone = zones[Math.floor(Math.random() * zones.length)].name;
+      const isEternal = Math.random() > 0.5;
+      const rarity = isEternal ? 'Eternal' : 'Divine';
+      const pool = eggDatabase[rarity];
+      const egg = pool[Math.floor(Math.random() * pool.length)];
 
-      const raritiesOrder = ['일반', '희귀', '에픽', '전설', '신화', '이터널', '디바인'];
-      let maxRankIndex = -1;
-      let highestRarityName = '없음';
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString();
 
-      activeKeys.forEach(k => {
-        const rarity = activeSpawns[k].rarity;
-        const idx = raritiesOrder.indexOf(rarity);
-        if (idx > maxRankIndex) {
-          maxRankIndex = idx;
-          highestRarityName = rarity;
-        }
+      currentZoneStatus[randomZone] = {
+        ...egg,
+        spawnTime: timeStr
+      };
+
+      spawnHistory.unshift({
+        time: timeStr,
+        zone: randomZone,
+        name: egg.name,
+        rarity: egg.rarity
       });
 
-      const badge = document.getElementById('highest-rarity-badge');
-      badge.innerText = highestRarityName;
+      if (soundEnabled) playAlertSound();
 
-      if (highestRarityName === '디바인') badge.className = 'ml-1 px-2 py-0.5 rounded text-[11px] font-black bg-orange-950 text-orange-400 border border-orange-500';
-      else if (highestRarityName === '이터널') badge.className = 'ml-1 px-2 py-0.5 rounded text-[11px] font-bold bg-purple-950 text-purple-300 border border-purple-500';
-      else if (highestRarityName === '신화') badge.className = 'ml-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-red-950 text-red-400 border border-red-800';
-      else badge.className = 'ml-1 px-2 py-0.5 rounded text-[11px] font-bold bg-slate-700 text-slate-300';
+      renderZones();
+      renderHistory();
     }
 
-    // 지역 선택 드롭다운 옵션 초기 세팅
-    function setupRegionDropdown() {
-      const select = document.getElementById('filter-region');
-      REGIONS.forEach(r => {
-        const opt = document.createElement('option');
-        opt.value = r.id;
-        opt.innerText = r.name;
-        select.appendChild(opt);
-      });
+    function toggleAudio() {
+      soundEnabled = !soundEnabled;
+      const btn = document.getElementById('audio-btn');
+      if (soundEnabled) {
+        btn.textContent = '🔔 이터널/디바인 알림: ON';
+        btn.classList.add('active');
+        playAlertSound();
+      } else {
+        btn.textContent = '🔔 이터널/디바인 알림: OFF';
+        btn.classList.remove('active');
+      }
     }
 
-    // 카운트다운 타이머 인터벌
-    function startGlobalTimer() {
-      setInterval(() => {
-        currentTimerValue--;
-        if (currentTimerValue <= 0) {
-          currentTimerValue = refreshSeconds;
-          refreshAllRegions();
-        }
-        
-        const formatSec = currentTimerValue < 10 ? `0${currentTimerValue}` : currentTimerValue;
-        document.getElementById('global-timer').innerText = `00:${formatSec}`;
-
-        // 각 카드의 카운트다운 숫자 동기화
-        renderRegionsGrid();
-      }, 1000);
+    function playAlertSound() {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.3);
     }
 
-    // 애플리케이션 초기화
-    window.onload = function() {
-      setupRegionDropdown();
-      generateInitialHistory();
-      refreshAllRegions();
-      startGlobalTimer();
-    };
+    window.onload = init;
   </script>
 </body>
 </html>
